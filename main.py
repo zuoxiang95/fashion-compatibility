@@ -18,8 +18,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2'
 import sys
 import shutil
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import transforms
 from torch.autograd import Variable
@@ -36,6 +34,10 @@ from csn import ConditionalSimNet
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=114, metavar='N',
                     help='input batch size for training (default: 64)')
+parser.add_argument('--distribute', type=bool, default=True,
+                    help='enables multi gpu training')
+parser.add_argument('--gpus', type=str, default='0',
+                    help='which gpu will be uesd in training')
 parser.add_argument('--epochs', type=int, default=40, metavar='N',
                     help='number of epochs to train (default: 200)')
 parser.add_argument('--start_epoch', type=int, default=1, metavar='N',
@@ -60,8 +62,6 @@ parser.add_argument('--sim_loss', type=float, default=5e-3, metavar='M',
                     help='parameter for loss for similarity norm')
 parser.add_argument('--mask_loss', type=float, default=5e-4, metavar='M',
                     help='parameter for loss for mask norm')
-parser.add_argument('--num_traintriplets', type=int, default=100000, metavar='N',
-                    help='how many unique training triplets (default: 100000)')
 parser.add_argument('--dim_embed', type=int, default=384, metavar='N',
                     help='how many dimensions in embedding (default: 64)')
 parser.add_argument('--test', dest='test', action='store_true',
@@ -83,15 +83,17 @@ parser.set_defaults(prein=False)
 parser.set_defaults(visdom=False)
 
 best_acc = 0
-torch.distributed.init_process_group(backend="nccl")
-local_rank = torch.distributed.get_rank()
-torch.cuda.set_device(local_rank)
-device = torch.device('cuda', local_rank)
 
 
 def main():
     global args, best_acc
     args = parser.parse_args()
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
+    if args.distribute:
+        torch.distributed.init_process_group(backend="nccl")
+        local_rank = torch.distributed.get_rank()
+        torch.cuda.set_device(local_rank)
+        device = torch.device('cuda', local_rank)
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
     if args.cuda:
@@ -137,7 +139,8 @@ def main():
 
     tnet = CS_Tripletnet(csn_model, args.margin)
     tnet.cuda()
-    tnet = DistributedDataParallel(tnet)
+    if args.distribute:
+        tnet = DistributedDataParallel(tnet)
 
     # optionally resume from a checkpoint
     if args.resume:
@@ -177,9 +180,13 @@ def main():
         # remember best acc and save checkpoint
         is_best = acc > best_acc
         best_acc = max(acc, best_acc)
+        if args.distribute:
+            checkpoint_state = tnet.module.state_dict()
+        else:
+            checkpoint_state = tnet.state_dict()
         save_checkpoint({
             'epoch': epoch + 1,
-            'state_dict': tnet.module.state_dict(),
+            'state_dict': checkpoint_state,
             'best_prec1': best_acc,
         }, epoch, is_best)
 
@@ -239,6 +246,7 @@ def test(test_loader, tnet, epoch):
         accs_cs[condition] = AverageMeter()
 
     # switch to evaluation mode
+    tnet = tnet.module
     tnet.eval()
     tnet.embeddingnet.eval()
     tnet.embeddingnet.embeddingnet.eval()
@@ -254,12 +262,7 @@ def test(test_loader, tnet, epoch):
 
             # measure accuracy and record loss
             accs.update(acc.item(), data1.size(0))
-            # for condition in conditions:
-            #    accs_cs[condition].update(accuracy_id(dista, distb, c_test, condition), data1.size(0))
             losses.update(test_loss, data1.size(0))
-
-            # for condition in conditions:
-    #    print('sim ' + str(condition) + ': ' + str(accs_cs[condition].avg))
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
@@ -274,14 +277,14 @@ def test(test_loader, tnet, epoch):
 
 def save_checkpoint(state, epoch, is_best):
     """Saves checkpoint to disk"""
-    directory = "runs/%s/" % (args.name)
+    directory = "runs/%s/" % args.name
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = 'checkpoint_{}.pth.tar'.format(epoch)
     filename = os.path.join(directory, filename)
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'runs/%s/' % (args.name) + 'model_best.pth.tar')
+        shutil.copyfile(filename, 'runs/%s/' % args.name + 'model_best.pth.tar')
 
 
 class VisdomLinePlotter(object):
@@ -345,18 +348,6 @@ def adjust_learning_rate(optimizer, epoch):
         plotter.plot('lr', 'learning rate', epoch, lr)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-
-
-def accuracy(dista, distb):
-    margin = 0
-    pred = (dista - distb - margin).cpu().data
-    return float((pred > 0).sum() * 1.0) / float((dista.size()[0]))
-
-
-def accuracy_id(dista, distb, c, c_id):
-    margin = 0
-    pred = (dista - distb - margin).cpu().data
-    return ((pred > 0) * (c.cpu().data == c_id)).sum() * 1.0 / (c.cpu().data == c_id).sum()
 
 
 if __name__ == '__main__':
