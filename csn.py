@@ -28,7 +28,7 @@ class ConditionalSimNet(nn.Module):
         self.embeddingnet = embeddingnet
         self.num_conditions = n_conditions
 
-        # mask layer
+        # mask branch
         self.downsample = nn.Sequential(nn.Conv2d(1, 1, kernel_size=1, stride=2, bias=False),
                                         nn.Conv2d(1, 1, kernel_size=1, stride=2, bias=False),
                                         nn.Conv2d(1, 1, kernel_size=1, stride=2, bias=False),

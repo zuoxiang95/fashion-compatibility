@@ -31,7 +31,6 @@ def accuracy(pos_samples, neg_samples):
     return Variable(acc)
 
 
-
 class CS_Tripletnet(nn.Module):
     def __init__(self, embeddingnet, margin):
         super(CS_Tripletnet, self).__init__()
