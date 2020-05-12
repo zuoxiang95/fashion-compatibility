@@ -80,7 +80,6 @@ class CS_Tripletnet(nn.Module):
         anchor_embeddings = []
         anchor_img_count = int(anchor_imgs.shape[1]/4)
         anchor_imgs = [anchor_imgs[:, i*4:(i+1)*4, :, :] for i in range(anchor_img_count)]
-        #anchor_imgs = [anchor_imgs[:, :4, :, :], anchor_imgs[:, 4:, :, :]]
         for x in anchor_imgs:
             embedded_x = self.embeddingnet(x)
             anchor_embeddings.append(embedded_x)
