@@ -1,12 +1,12 @@
 # fashion-compatibility
 
-This repository contains a Pytorch fashion compatibility model.This Pytorch implementation is built on the [mvasil's fashion-compatibility](https://github.com/mvasil/fashion-compatibility) and [rxtan2's Learning-Similarity-Conditions](https://github.com/rxtan2/Learning-Similarity-Conditions).There are some differences between the implementations. In particular, this Pytorch version support
+This repository contains a Pytorch fashion compatibility model.This Pytorch implementation is built on the [mvasil's fashion-compatibility](https://github.com/mvasil/fashion-compatibility) and [rxtan2's Learning-Similarity-Conditions](https://github.com/rxtan2/Learning-Similarity-Conditions).There are some differences between those implementations. In particular, this Pytorch version support
 
 - uses Resnet50 to extract the image's generalized feature.
 
 - has a mask branch to get the cloth's shape feature.
 
-- uses the whole outfit and multiple negative sample to calculate margin ranking loss.
+- uses the whole outfit and multiple negative samples to calculate margin ranking loss.
 
 
 ## Requirments
@@ -20,7 +20,7 @@ numpy==1.16.4
 PIL==6.2.0
 
 
-## Installation
+## Usage
 
 1. Clone this repository
     
