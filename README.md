@@ -12,8 +12,11 @@ This repository contains a Pytorch fashion compatibility model.This Pytorch impl
 ## Requirments
 
 pytorch==1.2.0
+
 torchvision==0.2.1
+
 numpy==1.16.4
+
 PIL==6.2.0
 
 
