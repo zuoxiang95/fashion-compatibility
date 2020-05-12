@@ -13,8 +13,6 @@
 
 import argparse
 import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2'
 import sys
 import shutil
 import torch

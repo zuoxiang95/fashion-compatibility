@@ -23,6 +23,11 @@ args = parser.parse_args()
 
 
 def init_model(checkpoint_path):
+    """
+       load model from checkpoint file.
+    :param checkpoint_path: the path of checkpoint file. (String)
+    :return: the model object.
+    """
     criterion = torch.nn.TripletMarginLoss(margin=args.margin)
     model = Resnet_101.resnet34(pretrained=True, embedding_size=args.dim_embed)
     csn_model = ConditionalSimNet(model, n_conditions=args.num_concepts,
@@ -43,6 +48,11 @@ print("Load model and data successful!")
 
 
 def load_image(image_path):
+    """
+       load image and transform image to pytorch Tensor.
+    :param image_path: the path of image.(String)
+    :return: Transformed image tensor.
+    """
     image = Image.open(image_path)
     # RGBA to RGB
     if image.mode != "RGBA":

@@ -23,6 +23,12 @@ def load_polyvore_data(polyvore_data_path):
 
 
 def load_image_feature(model, image_name):
+    """
+
+    :param model:
+    :param image_name:
+    :return:
+    """
     image_path = join('/home/zuoxiang/Outfit-notext/data/dida_outfits/image', image_name)
     image = load_image(image_path)
     image = torch.unsqueeze(image, dim=0)
