@@ -90,7 +90,6 @@ class CS_Tripletnet(nn.Module):
         negative_embeddings = []
         negative_img_count = int(negative_imgs.shape[1]/4)
         negative_imgs = [negative_imgs[:, i*4:(i+1)*4, :, :] for i in range(negative_img_count)]
-        #negative_imgs = [negative_imgs[:, :4, :, :], negative_imgs[:, 4:8, :, :], negative_imgs[:, 8:, :, :]]
         for z in negative_imgs:
             embedded_z = self.embeddingnet(z)
             negative_embeddings.append(embedded_z)
